@@ -488,7 +488,7 @@ static int snd_func_iops(snd_config_t **dst,
 	snd_config_iterator_t i, next;
 	const char *id;
 	char *res = NULL;
-	long result = 0, val;
+	long result = op == 1 ? 1 : 0, val;
 	int idx = 0, err, hit;
 
 	err = snd_config_search(src, "integers", &n);
@@ -531,6 +531,9 @@ static int snd_func_iops(snd_config_t **dst,
 			}
 		}
 	} while (hit);
+	/* Preserve pre-fix behavior for an empty integers list. */
+	if (op == 1 && idx == 0)
+		result = 0;
 	err = snd_config_get_id(src, &id);
 	if (err >= 0)
 		err = snd_config_imake_integer(dst, id, result);
