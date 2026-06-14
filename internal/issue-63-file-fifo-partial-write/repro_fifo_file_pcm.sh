@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-BUILD_DIR=${BUILD_DIR:-/tmp/alsa-452-build}
+BUILD_DIR=${BUILD_DIR:-/tmp/alsa-63-build}
 PCM_MIN=${PCM_MIN:-"$BUILD_DIR/test/pcm_min"}
 WRITER_ARGS=${WRITER_ARGS:-}
 WRITER_TIMEOUT=${WRITER_TIMEOUT:-}
