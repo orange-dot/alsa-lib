@@ -18,6 +18,8 @@ PR-ready branch or prune this internal bundle.
 - `repro_issue63_ag03.sh`: Yamaha AG06/AG03 hardware-oriented topology reproducer.
 - `pcm_write_finite.c`: finite PCM writer used by the reproduction scripts.
 - `partial_write_preload.c`: `LD_PRELOAD` shim that forces short `write(2)` results.
+- `upstream-scope-discussion.md`: internal scope decision record, reviewer
+  notes, and Rust/AIG lab evidence.
 
 ## Problem Under Investigation
 
