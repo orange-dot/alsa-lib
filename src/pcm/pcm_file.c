@@ -445,14 +445,18 @@ static int snd_pcm_file_write_bytes(snd_pcm_t *pcm, size_t bytes)
 			snd_errornum(PCM, "%s write failed, file data may be corrupt", file->fname);
 			return err;
 		}
+		if (err == 0) {
+			file->wbuf_used_bytes = 0;
+			file->file_ptr_bytes = 0;
+			snd_error(PCM, "%s write returned zero, file data may be corrupt", file->fname);
+			return -EIO;
+		}
 		bytes -= err;
 		file->wbuf_used_bytes -= err;
 		file->file_ptr_bytes += err;
 		if (file->file_ptr_bytes == file->wbuf_size_bytes)
 			file->file_ptr_bytes = 0;
 		file->filelen += err;
-		if ((snd_pcm_uframes_t)err != n)
-			break;
 	}
 	return 0;
 }
