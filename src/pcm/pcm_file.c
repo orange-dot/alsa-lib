@@ -100,10 +100,16 @@ typedef struct {
 #define TO_LE16(x)	bswap_16(x)
 #endif
 
+/* Writes ALL `len` bytes (loops on partial transfer), retrying EINTR.
+ * Returns len, or a negative errno; a zero-byte write is reported as -EIO.
+ * NOTE: blocking write-all - not for non-blocking callers. */
 static ssize_t safe_write(int fd, const void *buf, size_t len)
 {
-	while (1) {
-		ssize_t r = write(fd, buf, len);
+	const char *ptr = buf;
+	size_t offset = 0;
+
+	while (offset < len) {
+		ssize_t r = write(fd, ptr + offset, len - offset);
 		if (r < 0) {
 			if (errno == EINTR)
 				continue;
@@ -111,8 +117,11 @@ static ssize_t safe_write(int fd, const void *buf, size_t len)
 				return -EIO;
 			return -errno;
 		}
-		return r;
+		if (r == 0)
+			return -EIO;
+		offset += (size_t)r;
 	}
+	return (ssize_t)offset;
 }
 
 static int snd_pcm_file_append_value(char **string_p, char **index_ch_p,
@@ -451,8 +460,6 @@ static int snd_pcm_file_write_bytes(snd_pcm_t *pcm, size_t bytes)
 		if (file->file_ptr_bytes == file->wbuf_size_bytes)
 			file->file_ptr_bytes = 0;
 		file->filelen += err;
-		if ((snd_pcm_uframes_t)err != n)
-			break;
 	}
 	return 0;
 }
@@ -519,15 +526,19 @@ static int snd_pcm_file_close(snd_pcm_t *pcm)
 	return snd_pcm_generic_close(pcm);
 }
 
+static void snd_pcm_file_discard_buffer(snd_pcm_file_t *file)
+{
+	file->wbuf_used_bytes = 0;
+	file->appl_ptr = 0;
+	file->file_ptr_bytes = 0;
+}
+
 static int snd_pcm_file_reset(snd_pcm_t *pcm)
 {
 	snd_pcm_file_t *file = pcm->private_data;
 	int err = snd_pcm_reset(file->gen.slave);
-	if (err >= 0) {
-		/* FIXME: Questionable here */
-		snd_pcm_file_write_bytes(pcm, file->wbuf_used_bytes);
-		assert(file->wbuf_used_bytes == 0);
-	}
+	if (err >= 0)
+		snd_pcm_file_discard_buffer(file);
 	return err;
 }
 
@@ -535,11 +546,8 @@ static int snd_pcm_file_drop(snd_pcm_t *pcm)
 {
 	snd_pcm_file_t *file = pcm->private_data;
 	int err = snd_pcm_drop(file->gen.slave);
-	if (err >= 0) {
-		/* FIXME: Questionable here */
-		snd_pcm_file_write_bytes(pcm, file->wbuf_used_bytes);
-		assert(file->wbuf_used_bytes == 0);
-	}
+	if (err >= 0)
+		snd_pcm_file_discard_buffer(file);
 	return err;
 }
 
