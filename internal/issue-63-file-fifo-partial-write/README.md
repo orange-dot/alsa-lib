@@ -1,4 +1,4 @@
-# Internal evidence bundle: ALSA lib file-plugin FIFO write handling
+# Internal evidence bundle: ALSA lib file-plugin buffered FIFO write handling
 
 Branch: `internal/alsa-63-file-fifo-partial-write`
 
@@ -21,10 +21,10 @@ PR-ready branch or prune this internal bundle.
 
 ## Problem Under Investigation
 
-The ALSA `file` PCM plugin writes playback data to an output file descriptor.
-When that descriptor is a FIFO or pipe, `write(2)` may legally return a short
-positive byte count. That is not an error; it means the caller must retry the
-remaining bytes.
+The ALSA `file` PCM plugin flushes buffered PCM payload data to an output file
+descriptor. When that descriptor is a FIFO or pipe, `write(2)` may legally
+return a short positive byte count. That is not an error; it means the caller
+must retry the remaining bytes.
 
 The old `snd_pcm_file_write_bytes()` loop stopped after a short positive write
 and returned success. That could leave bytes in the internal write buffer. In a
@@ -32,9 +32,11 @@ debug build, `snd_pcm_file_drain()` can then abort because `wbuf_used_bytes` is
 not zero. In a non-debug or different timing scenario, this can plausibly become
 lost output data.
 
-The source fix changes that behavior so partial writes continue until all
-requested bytes are flushed, and treats a zero-byte write as `-EIO` to avoid an
-infinite loop.
+The source fix changes the buffered PCM payload flush path so partial writes
+continue until all requested payload bytes are flushed, and treats a zero-byte
+write as `-EIO` to avoid an infinite loop. It does not claim to cover every
+`pcm_file` write path; WAV header and length-fixup writes remain outside the
+scope of this patch.
 
 ## Software FIFO Checks
 
@@ -179,4 +181,6 @@ This branch is intentionally internal. For an upstream-ready branch:
 - keep the `src/pcm/pcm_file.c` fix;
 - decide whether any small regression helper belongs upstream;
 - remove this internal evidence bundle unless maintainers ask for it;
+- describe the source change as buffered PCM payload write handling, not as a
+  complete fix for every partial write in `pcm_file`;
 - write the upstream PR without overclaiming natural reproduction on AG03.

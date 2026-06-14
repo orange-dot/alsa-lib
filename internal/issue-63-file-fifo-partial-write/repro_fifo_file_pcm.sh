@@ -68,11 +68,28 @@ write_config_tee() {
 	local sink=$1
 	write_common_config_prefix
 	cat >> "$tmpdir/asound.conf" <<EOF
-pcm.!default {
+pcm.tee {
+	@args [ SLAVE FILE FORMAT ]
+	@args.SLAVE {
+		type string
+	}
+	@args.FILE {
+		type string
+	}
+	@args.FORMAT {
+		type string
+		default raw
+	}
 	type file
-	slave.pcm "null"
-	file "$sink"
-	format "raw"
+	slave.pcm \$SLAVE
+	file \$FILE
+	format \$FORMAT
+	truncate true
+}
+
+pcm.!default {
+	type empty
+	slave.pcm "tee:null,'$sink',raw"
 }
 EOF
 }
