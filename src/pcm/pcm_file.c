@@ -445,6 +445,7 @@ static int snd_pcm_file_write_bytes(snd_pcm_t *pcm, size_t bytes)
 			snd_errornum(PCM, "%s write failed, file data may be corrupt", file->fname);
 			return err;
 		}
+		/* A zero-byte write would make this partial-write loop spin. */
 		if (err == 0) {
 			file->wbuf_used_bytes = 0;
 			file->file_ptr_bytes = 0;

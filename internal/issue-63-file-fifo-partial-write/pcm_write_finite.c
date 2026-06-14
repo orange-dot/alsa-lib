@@ -91,7 +91,7 @@ static void fill_buffer(void *buffer, size_t frames, unsigned int channels,
 				    amplitude;
 			if (format == SND_PCM_FORMAT_S32_LE)
 				((int32_t *)buffer)[frame * channels + ch] =
-					(int32_t)value << 16;
+					value * 65536;
 			else
 				((int16_t *)buffer)[frame * channels + ch] =
 					(int16_t)value;
